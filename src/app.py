@@ -11,6 +11,13 @@ from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import JWTManager
+
+app = Flask(__name__)
+
 # from models import Person
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -18,6 +25,9 @@ static_file_dir = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), '../public/')
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
@@ -66,6 +76,33 @@ def serve_any_other_file(path):
     response = send_from_directory(static_file_dir, path)
     response.cache_control.max_age = 0  # avoid cache memory
     return response
+
+@app.route('/sign_in', methods=["POST"])
+def sign_in():
+    email = request.json.get("email", None)
+    password = request.json.get("password", None)
+
+@app.route('/login', methods=["POST"])
+def login():
+    email = request.json.get("email", None)
+    password = request.json.get("password", None)
+    user_query.filter_by(email=email).first()
+
+    if email != user_query.email or password != user_query.password:
+        return jsonfy({"msg": "Wrrong user or password"}), 400
+
+    access_token = create_access_token(identity=email)
+    return jsonify(logged_in_as=current_user), 200
+
+@app.route("/private", methods=["GET"])
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
+
+
+
+
 
 
 # this only runs if `$ python src/main.py` is executed
